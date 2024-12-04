@@ -16,7 +16,6 @@ import vis_util
 #test2
 class CameraApp(tk.Tk):
     def __init__(self):
-
         self.transfer = None
         self.rec3d = None
         
@@ -42,22 +41,24 @@ class CameraApp(tk.Tk):
         self.grid_columnconfigure(index=2, weight=4)
 
         self.capture_flag_address = 15 #画像キャプチャフラグのアドレス
-        self.complete_flag_address = 48 #完了フラグのアドレス
-        self.register_address = 128 #物体座標送信用のレジスタのアドレス始点
-        self.dummy_data=[12.1,12.1,12.1,12.1,12.1,12.1] #送信用ダミーデータ
-        self.pose_data=[]  #送信データ
+        self.complete_flag_address = 50 #完了フラグのアドレス
+        self.absense_flag_address = 52 #フラグのアドレス
+        self.register_address = 132 #物体座標送信用のレジスタのアドレス始点
+        self.pose_data=[]
         self.update_interval = 20 # 画像更新間隔
-        self.check_interval = 1000 # DO8のチェック間隔
-        self.modbus_server_ip ='127.0.0.1' #ModbusサーバーのIPアドレス
+        self.check_interval = 500 # DO8のチェック間隔
+        self.modbus_server_ip ='192.168.3.41' #ModbusサーバーのIPアドレス
         self.modbus_server_port =502 #Modbusサーバーのポート番号
+
         self.flag_is_checked =False
         self.devices = []
         self.client = None  
+
         self.create_widgets()
         self.load_devices()      
 
     def create_widgets(self):
-        """ウィジェットの作成"""
+        "ウィジェットの作成"
         # カメラ選択用のコンボボックス
         tk.Label(self, text="device").grid(row=0, column=1, padx=10, pady=5, sticky='w')
         self.comboBoxDevices1 = ttk.Combobox(self, width=20)
@@ -89,12 +90,14 @@ class CameraApp(tk.Tk):
         device_list =[]
         device_enum = visiontransfer.DeviceEnumeration()
         device_list = device_enum.discover_devices()
+
         if len(device_list) < 1:
             print('No devices found')
             
         return device_list
 
     def load_devices(self):
+
         try:
             self.devices =  self.load_device_list()
                 
@@ -114,26 +117,28 @@ class CameraApp(tk.Tk):
 
     def connect_nerian_camera(self):
         device =self.devices[0]
-        print(device)
         params = visiontransfer.DeviceParameters(device)
         params.set_operation_mode(visiontransfer.OperationMode.STEREO_MATCHING)
+
         try:
             self.transfer = visiontransfer.AsyncTransfer(device)
             self.rec3d = visiontransfer.Reconstruct3D()
             print(self.transfer.is_connected())
             self.update_frame()
         except:
-            print("Can't connect camera")
+            print("cant connect camera")
 
     def connect_modbus_server(self):
+
         if not self.devices:
-            print("No cameras available to start.")
-            return
+           print("No cameras available to start.")
+           return
 
         if not self.client:
-            try:
 
+            try:
                 self.client = ModbusClient( self.modbus_server_ip , port= self.modbus_server_port) 
+
                 if not self.client.connect():
                     print("Failed to connect to Modbus server")
                     return
@@ -167,7 +172,7 @@ class CameraApp(tk.Tk):
             self.label2.configure(image=img2)
 
         except Exception as e:
-            print(f"Error update frame: {e}")
+            print(f"frame update error: {e}")
         finally:
             self.after(self.update_interval, self.update_frame)
 
@@ -180,12 +185,12 @@ class CameraApp(tk.Tk):
             depth = np.array((rgbd.depth),dtype=np.float32)  
 
             outputs,boxes= self.megapose.run_inference(color,depth)
-            
-            self.send_data = []
+            #outputs=[[[0.422618,0,0,0.906308],[0,400,0]]]
+            self.pose_data = []
             if outputs:  
                 print(np.array(outputs[0][0]))
                 print(np.array(outputs[0][1]))    
-                self.send_data = vis_util.create_pose_data(np.array(outputs[0][0]),np.array(outputs[0][1]))
+                self.pose_data = vis_util.create_pose_data(np.array(outputs[0][0]),np.array(outputs[0][1]))
                 
                 color = vis_util.draw_boxes(color,boxes)
                 color = vis_util.draw_axis_from_qua(color,np.array(outputs[0][0]),np.array(outputs[0][1]),self.K)
@@ -198,30 +203,38 @@ class CameraApp(tk.Tk):
         except Exception as e:
             print(f"Error capturing images: {e}")
     
-    def send_complete_flag(self):
+    def send_flag(self,address,flag:bool):
+        #フラグの送信
         try:
+
             if self.client:
-                self.client.write_coil(self.complete_flag_address, True)
-                print("Complete flag is sent")
+                self.client.write_coil(address, flag)
+                print("flag sent")
+
         except Exception as e:
-            print(f"Error sending complete flag: {e}")
+            print(f"Error sending flag: {e}")
             
     def send_pose_data(self,data_list):
+        #物体座標データの送信
         def make_send_data(data_list):
             send_data=[]
+
             for data in data_list:
                 byte=struct.pack('>f', data)
                 data_int  = struct.unpack('>HH',byte)
                 send_data.append(data_int[0])
                 send_data.append(data_int[1])
+
             return send_data
         
         try:
+
             if self.client:
                 data = make_send_data(data_list)
                 print(data)
                 self.client.write_registers(self.register_address, data)
-                print("pose data are sent")
+                print("pose data sent")
+
         except Exception as e:
             print(f"Error sending pose data: {e}")
     
@@ -231,27 +244,38 @@ class CameraApp(tk.Tk):
             result_di8 = self.client.read_discrete_inputs(self.capture_flag_address,2).bits[0]
            
             if result_di8:  # DO8 is on
-
+                
                 if self.flag_is_checked:
                     pass
                 else:
+                    self.send_flag(self.absense_flag_address,False)
+                    self.send_flag(self.complete_flag_address,False)
                     print("DO8 is on")
+                    # 画像キャプチャ
                     self.capture_images()
-                    if self.send_data:
-                        self.send_pose_data(self.send_data)     
-                        self.send_complete_flag()
+                    send_data=self.pose_data
+
+                    if send_data:
+                        # 座標データを送信  
+                        self.send_pose_data(send_data)    
+                        # 処理完了フラグを送信
+                        self.send_flag(self.complete_flag_address,True)
                         self.flag_is_checked = True
+                    else:
+                        self.send_flag(self.absense_flag_address,True)
+
             else:
                 print("D08 is off")
                 self.flag_is_checked = False
 
         except Exception as e:
-            print(f"Error reading register: {e}")
+            print(f"Modbus error: {e}")
 
         finally:    
             self.after(self.check_interval, self.read_robot_register)
 
     def on_closing(self):
+    
         if self.client:
             self.client.close()
         self.megapose = None

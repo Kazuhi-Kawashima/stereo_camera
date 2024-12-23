@@ -5,10 +5,15 @@ from scipy.spatial.transform import Rotation
 
 #quaternion (x,y,z,w)
 def qua_to_rotation_vec(quaternion):
-    rotation_vec = Rotation.from_quat(quaternion)
-    rotation_vec = cv2.Rodrigues(rotation_vec.as_matrix())[0]
+    rotation = Rotation.from_quat(quaternion)
+    rotation_vec = cv2.Rodrigues(rotation.as_matrix())[0]
     return rotation_vec
-
+    
+def qua_to_euler(quaternion):
+    rotation = Rotation.from_quat(quaternion)
+    euler = rotation.as_euler('xyz',degrees=True)
+    return euler
+    
 def rotation_vec_to_euler(rotation_vec,degree=True):
     euler = rotation_vec.reshape(3) 
     if degree:
@@ -16,8 +21,9 @@ def rotation_vec_to_euler(rotation_vec,degree=True):
     return euler
 
 def create_pose_data(quaternion,translation):
-    rotation_vec = qua_to_rotation_vec(quaternion)
-    euler = rotation_vec_to_euler(rotation_vec)
+    #rotation_vec = qua_to_rotation_vec(quaternion)
+    #euler = rotation_vec_to_euler(rotation_vec)
+    euler = qua_to_euler(quaternion)
     pose_data=np.hstack([translation,euler])
     
     return pose_data.tolist()

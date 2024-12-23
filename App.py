@@ -1,5 +1,5 @@
 ﻿import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, font
 from datetime import datetime
 import struct
 
@@ -20,11 +20,12 @@ class CameraApp(tk.Tk):
         self.rec3d = None
         
         self.megapose = MegaposeEstimater.MegaposeEstimater(MegaposeEstimater.LOCAL_DIR / "data", True)
-        self.K = np.array([[1173.4605, 0.0, 698.37359], [0.0, 1172.6029, 486.06337], [0.0, 0.0, 1.0]])
+        self.K = np.array([[1174.4691, 0.0, 702.0466], [0.0, 1176.8887, 482.63185], [0.0, 0.0, 1.0]])
        
         tk.Tk.__init__(self)
         self.title("Camera App")
         self.geometry("1920x1080")
+        
         self.grid_rowconfigure(index=0, weight=1)
         self.grid_rowconfigure(index=1, weight=1)
         self.grid_rowconfigure(index=2, weight=1)
@@ -35,7 +36,10 @@ class CameraApp(tk.Tk):
         self.grid_rowconfigure(index=7, weight=1)
         self.grid_rowconfigure(index=8, weight=1)
         self.grid_rowconfigure(index=9, weight=1)
-        self.grid_rowconfigure(index=10, weight=1)
+        #self.grid_rowconfigure(index=10, weight=1)
+        #self.grid_rowconfigure(index=11, weight=1)
+        #self.grid_rowconfigure(index=12, weight=1)
+    
         self.grid_columnconfigure(index=0, weight=2)
         self.grid_columnconfigure(index=1, weight=4)
         self.grid_columnconfigure(index=2, weight=4)
@@ -72,8 +76,8 @@ class CameraApp(tk.Tk):
         self.buttonConnect = tk.Button(self, text="Connect", command=self.connect_modbus_server)
         self.buttonConnect.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
         # capture btn 
-        self.buttonConnect = tk.Button(self, text="capture", command=self.capture_images)
-        self.buttonConnect.grid(row=4, column=0, padx=5, pady=5, sticky="ew")
+        #self.buttonConnect = tk.Button(self, text="capture", command=self.capture_images)
+        #self.buttonConnect.grid(row=4, column=0, padx=5, pady=5, sticky="ew")
 
         # カメラ映像を表示するcanvas
         self.label1 = tk.Label(self)
@@ -82,10 +86,24 @@ class CameraApp(tk.Tk):
         self.label2.grid(row=3, column=2, rowspan=4, sticky="nsew")
         # 撮影画像を表示するcanvas
         self.label3 = tk.Label(self)
-        self.label3.grid(row=7, column=1, rowspan=4, sticky="nsew")
-        self.label4 = tk.Label(self)
-        self.label4.grid(row=7, column=2, rowspan=4, sticky="nsew")
-
+        self.label3.grid(row=7, column=1, rowspan=4, sticky="ew")
+        #self.label4 = tk.Label(self)
+        #self.label4.grid(row=7, column=2, rowspan=4, sticky="nsew")
+        
+        font_obj = font.Font(size=28)
+        self.label5 = tk.Label(self, text="x:mm",font=font_obj)
+        self.label5.grid(row=4, column=0, sticky="nsew")
+        self.label6 = tk.Label(self, text="y:mm",font=font_obj)
+        self.label6.grid(row=5, column=0, sticky="nsew")
+        self.label7 = tk.Label(self, text="z:mm",font=font_obj)
+        self.label7.grid(row=6, column=0, sticky="nsew")
+        self.label8 = tk.Label(self, text="xr:°",font=font_obj)
+        self.label8.grid(row=7, column=0, sticky="nsew")
+        self.label9 = tk.Label(self, text="yr:°",font=font_obj)
+        self.label9.grid(row=8, column=0, sticky="nsew")
+        self.label10 = tk.Label(self, text="zr:°",font=font_obj)
+        self.label10.grid(row=9, column=0, sticky="nsew")
+        
     def load_device_list(self):
         device_list =[]
         device_enum = visiontransfer.DeviceEnumeration()
@@ -130,9 +148,9 @@ class CameraApp(tk.Tk):
 
     def connect_modbus_server(self):
 
-        if not self.devices:
-           print("No cameras available to start.")
-           return
+        #if not self.devices:
+         #  print("No cameras available to start.")
+          # return
 
         if not self.client:
 
@@ -151,10 +169,11 @@ class CameraApp(tk.Tk):
     def update_frame(self):
         
         try:
-            image_set = self.transfer.collect_received_image_set(1)
+            image_set = self.transfer.collect_received_image_set()
             
-            rgbd = self.rec3d.create_open3d_rgbd_image(image_set, depth_trunc=600, color_source=3,depth_scale=0.001,convert_rgb_to_intensity=False, convert_intensity_to_rgb=True)
-            color= np.array(rgbd.color)
+            #rgbd = self.rec3d.create_open3d_rgbd_image(image_set, depth_trunc=600, color_source=3,depth_scale=0.001,convert_rgb_to_intensity=False, convert_intensity_to_rgb=True)
+            rgbd = self.rec3d.create_open3d_rgbd_image(image_set, depth_trunc=600,depth_scale=0.001,color_source=2,convert_rgb_to_intensity=False, convert_intensity_to_rgb=True)
+            color= np.array((rgbd.color), dtype=np.uint8)
             depth = np.array(rgbd.depth)  
             
             x_min = np.min(depth)
@@ -180,7 +199,8 @@ class CameraApp(tk.Tk):
         
         try:
             image_set = self.transfer.collect_received_image_set()
-            rgbd = self.rec3d.create_open3d_rgbd_image(image_set, depth_trunc=600, color_source=3,depth_scale=0.001,convert_rgb_to_intensity=False, convert_intensity_to_rgb=True)
+            #rgbd = self.rec3d.create_open3d_rgbd_image(image_set, depth_trunc=600, color_source=3,depth_scale=0.001,convert_rgb_to_intensity=False, convert_intensity_to_rgb=True)
+            rgbd = self.rec3d.create_open3d_rgbd_image(image_set, depth_trunc=600,depth_scale=0.001,color_source=2,convert_rgb_to_intensity=False, convert_intensity_to_rgb=True)
             color= np.array((rgbd.color), dtype=np.uint8)
             depth = np.array((rgbd.depth),dtype=np.float32)  
 
@@ -234,7 +254,14 @@ class CameraApp(tk.Tk):
                 print(data)
                 self.client.write_registers(self.register_address, data)
                 print("pose data sent")
-
+                
+                self.label5['text']=f'x:{data_list[0]:.3f}mm'
+                self.label6['text']=f'y:{data_list[1]:.3f}mm'
+                self.label7['text']=f'z:{data_list[2]:.3f}mm'
+                self.label8['text']=f'xr:{data_list[3]:.3f}°'
+                self.label9['text']=f'yr:{data_list[4]:.3f}°'
+                self.label10['text']=f'zr:{data_list[5]:.3f}°'
+                
         except Exception as e:
             print(f"Error sending pose data: {e}")
     
@@ -265,8 +292,9 @@ class CameraApp(tk.Tk):
                         self.send_flag(self.absense_flag_address,True)
 
             else:
-                print("D08 is off")
-                self.flag_is_checked = False
+                if self.flag_is_checked:
+                    print("D08 is off")
+                    self.flag_is_checked = False
 
         except Exception as e:
             print(f"Modbus error: {e}")

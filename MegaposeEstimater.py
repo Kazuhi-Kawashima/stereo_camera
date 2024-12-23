@@ -72,7 +72,7 @@ class MegaposeEstimater:
         n_workers = 6
         bsz_objects = 2
         bsz_images = 256
-        SO3_grid_size = 72
+        SO3_grid_size = 512  #72
         self.detector = detector.yolox("yolox_s.onnx")
         self.data_dir = data_dir
         self.mesh_data = self.make_object_dataset(self.data_dir)
@@ -167,8 +167,11 @@ class MegaposeEstimater:
                 instance_id=np.arange(len(cls_inds)),
             )
         )
+        print(boxes[0])
+        print(np.array([boxes[0][0]-20,boxes[0][1]-20,boxes[0][2]+20,boxes[0][3]+20]))
+        
         bboxes = torch.as_tensor(
-            np.stack([bbox+10 for bbox in boxes]),
+            np.stack([np.array([bbox[0]-20,bbox[1]-20,bbox[2]+20,bbox[3]+20]) for bbox in boxes]),
         )
         return PandasTensorCollection(infos=infos, bboxes=bboxes)
         

@@ -16,7 +16,6 @@ _COLORS = np.array(
     ]
 ).astype(np.float32).reshape(-1, 3)
 
-
 class yolox:
 
     def __init__(self, model_path):
@@ -87,6 +86,7 @@ class yolox:
         y1 = boxes[:, 1]
         x2 = boxes[:, 2]
         y2 = boxes[:, 3]
+        
 
         areas = (x2 - x1 + 1) * (y2 - y1 + 1)
         order = scores.argsort()[::-1]
@@ -178,6 +178,7 @@ class yolox:
         return padded_img, r
 
     def detection(self, img):
+
         img, ratio = self.preproc(img, (640,640))
         ort_inputs = {self.session.get_inputs()[0].name: img[None, :, :, :]}
         output = self.session.run(None, ort_inputs)
@@ -206,6 +207,7 @@ class yolox:
 
 
 if __name__ == '__main__':
+
     yolox=yolox("yolox_s.onnx")
     img =cv2.imread("./data/image_rgb.png")
     final_boxes, final_scores, final_cls_inds = yolox.detection(img)

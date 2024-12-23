@@ -5,22 +5,23 @@ from scipy.spatial.transform import Rotation
 
 #quaternion (x,y,z,w)
 def qua_to_rotation_vec(quaternion):
-    rotation = Rotation.from_quat(quaternion)
-    rotation_vec = cv2.Rodrigues(rotation.as_matrix())[0]
+    rotation_vec = Rotation.from_quat(quaternion)
+    rotation_vec = cv2.Rodrigues(rotation_vec.as_matrix())[0]
     return rotation_vec
-    
-def qua_to_euler(quaternion):
-    rotation = Rotation.from_quat(quaternion)
-    euler = rotation.as_euler('xyz',degrees=True)
-    return euler
-    
+
 def rotation_vec_to_euler(rotation_vec,degree=True):
     euler = rotation_vec.reshape(3) 
     if degree:
         euler = np.rad2deg(euler)
     return euler
-
+    
+def qua_to_euler(quaternion):
+    rotation = Rotation.from_quat(quaternion)
+    euler = rotation.as_euler("xyz",degrees=True)
+    return euler
+    
 def create_pose_data(quaternion,translation):
+    translation = translation*1000
     #rotation_vec = qua_to_rotation_vec(quaternion)
     #euler = rotation_vec_to_euler(rotation_vec)
     euler = qua_to_euler(quaternion)
@@ -29,6 +30,7 @@ def create_pose_data(quaternion,translation):
     return pose_data.tolist()
 
 def draw_axis_from_qua(img, quaternion, t, K, scale=0.05, dist=None):
+
     rotation_vec = qua_to_rotation_vec(quaternion)
     dist =np.zeros(4, dtype=float) if dist is None else dist
     points = scale*np.float32([[1,0,0],[0,1,0],[0,0,1],[0,0,0]]).reshape(-1,3)
@@ -55,6 +57,7 @@ def draw_boxes(img, boxes):
     return img    
     
 if __name__ =="__main__":
+
     K =np.array([[3626.9, 0.0, 773.2], [0.0, 3626.6, 5519], [0.0, 0.0, 1.0]])
     resolution = (1440, 1080)
     t =np.array([0.00036494730738922954, 0.00837632268667221, 0.13977889716625214])
